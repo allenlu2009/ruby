@@ -3,101 +3,111 @@
 # 
 ### this script works for tran/ac analysis with sweeping case
 
-def get_lines(filename)
-  return File.open(filename, 'r').readlines
-end
-
-def print_sysinfo(outfile, cc='#', argstr=ARGV)
-  date = `date`.chomp
-  pwd  = `pwd`.chomp
-  hostname = `hostname`.chomp
-  user = `whoami`.chomp
-
-  outfile.print(
-"#{cc} Generated #{date} by #{user}
-#{cc} #{hostname}:#{pwd}
-#{cc} #{$0} #{argstr}\n\n"
-                )
-end
-
-
 require 'optparse'
 
-debug = false   ## true: print debug message
+class MT_atd  # mt/MT 
 
-options = {}
-optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [options] <cdl>"
-  
-  #options[:title] = false
-  #opts.on( '-t', '--title', 'Export title to csv file' ) do
-  #  options[:title] = true
-  #end
-  
-  #options[:csv] = false
-  #opts.on( '-c', '--csv', 'Ouput to csv file' ) do
-  #  options[:csv] = true
-  #end
-  
-  #options[:plot] = false
-  #opts.on( '-p', '--plot', 'Plot data' ) do
-  #  options[:plot] = true
-  #end
-  
-  options[:outfile] = nil
-  opts.on( '-o', '--outfile FILE', 'Output csv; default <cdl>.csv' ) do |file|
-    options[:outfile] = file
+  def get_lines(filename)
+    return File.open(filename, 'r').readlines
   end
   
-  options[:line] = 1
-  opts.on( '-l', '--line Num', Integer, 'Variable takes how many line; default 1' ) do |ln|
-    options[:line] = ln
+  
+  def print_sysinfo(outfile, cc='#', argstr=ARGV)
+    date = `date`.chomp
+    pwd  = `pwd`.chomp
+    hostname = `hostname`.chomp
+    user = `whoami`.chomp
+    outfile.print("#{cc} Generated #{date} by #{user}\n")
+    outfile.print("#{cc} #{hostname}:#{pwd}\n")
+    outfile.print("#{cc} #{$0} #{argstr}\n\n")
   end
+
   
-  #options[:parameter] = []
-  #opts.on( '-v', '--variable a,b,c', Array, 'Variable to save' ) do |par|
-  #  options[:parameter] = par
-  #end
+ def initialize(filename)
+   @debug = false
+   @filename = filename
+   @file_arr = get_lines(@filename)
+ end
   
-  # This displays the help screen, all programs are
-  # assumed to have this option.
-  opts.on( '-h', '--help', 'Display this screen' ) do
-    puts opts
+end  # class
+
+  def get_lines(filename)
+    return File.open(filename, 'r').readlines
+  end
+
+#### main starts here ####
+
+if __FILE__ == $0
+  
+  options = {}
+  optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options] <cdl>"
+    
+    options[:debug] = false
+    opts.on( '--debug', 'Debug enable' ) do
+      options[:debug] = true
+    end
+    
+    options[:outfile] = nil
+    opts.on( '-o', '--outfile FILE', 'Output csv; default <cdl>.csv' ) do |file|
+      options[:outfile] = file
+    end
+    
+    options[:line] = 1
+    opts.on( '-l', '--line Num', Integer, 'Variable takes how many line; default 1' ) do |ln|
+      options[:line] = ln
+    end
+    
+    #options[:parameter] = []
+    #opts.on( '-v', '--variable a,b,c', Array, 'Variable to save' ) do |par|
+    #  options[:parameter] = par
+    #end
+    
+    # This displays the help screen, all programs are
+    # assumed to have this option.
+    opts.on( '-h', '--help', 'Display this screen' ) do
+      puts opts
+      exit
+    end
+  end
+
+
+  begin optparse.parse! ARGV
+  rescue OptionParser::InvalidOption => err
+    puts err
+    puts optparse
+    exit 
+  end
+
+  if (ARGV.length < 1)
+    puts optparse
     exit
   end
-end
+  
+  puts "OPTION:"
+  puts "Enable debug" if options[:debug]
+  puts "Output file: #{options[:outfile]}" if options[:outfile]
+  #puts "Variables: #{options[:parameter]}" if options[:parameter]
+  puts "Variable line block.: #{options[:line]}" 
+  
+  debug = options[:debug] 
+  puts __FILE__ if debug
+  puts $0 if debug
+  
+  ## input file
+  incdl = ARGV[0]  
+  
+  ## output csv file
+  out_csv = options[:outfile] ? options[:outfile] : incdl + ".csv"
+  csv_file = File.new(out_csv, "w")
+  
 
-
-begin optparse.parse! ARGV
-rescue OptionParser::InvalidOption => err
-  puts err
-  puts optparse
-  exit 
-end
-
-if (ARGV.length < 1)
-  puts optparse
-  exit
-end
-
-puts "Output file: #{options[:outfile]}" if options[:outfile]
-#puts "Variables: #{options[:parameter]}" if options[:parameter]
-puts "Variable line block.: #{options[:line]}" 
-
-## input file
-incdl = ARGV[0]  
-
-## output csv file
-out_csv = options[:outfile] ? options[:outfile] : incdl + ".csv"
-csv_file = File.new(out_csv, "w")
-
-
-### Step1: read final.mt and separate into multiple files
-#file_arr = get_lines(incdl)  ## read file as an array
-#file_str = file_arr.to_s     ## convert it into string
-
-line_block = options[:line]
-#p line_block if (debug)
+  ### Step1: read final.mt and separate into multiple files
+  #file_arr = get_lines(incdl)  ## read file as an array
+  #file_str = file_arr.to_s     ## convert it into string
+  
+  line_block = options[:line]
+  #p line_block if (debug)
 
 counter = 0
 hspice = false
@@ -107,6 +117,8 @@ sweep_par = ""
 sweep_val = ""
 header_coming = false
 csv_arr = []
+
+first_alter = 1
 
 get_lines(incdl).each_with_index do |row, row_no|  ## row_no starts from 0
   row.chomp!
@@ -134,13 +146,23 @@ get_lines(incdl).each_with_index do |row, row_no|  ## row_no starts from 0
   
   if (hspice)
 
+    if first_alter == 1
+      if row =~ /alter#/i
+        line_block = row_no - 1
+        first_alter = 0
+      else
+        line_block = row_no
+      end
+      puts "LINE_BLOCK => #{line_block}" if debug
+    end
+
     next unless row.length > 0  # ignore blank lines
     next if row =~ /^\s+$/ # weed out white space line
     next if row =~ /^\s*\*/ # weed out * comment
     next if row =~ /^\s*#/  # weed out # comment
     next if row =~ /^\$DATA/ # weed out repeated $DATA ...
     next if row =~ /^\.TITLE/ # weed out repeated .TITLE ...
-    
+
     puts "ROW"+row_no.to_s+" => " + row + " counter" + counter.to_s if (debug)
     
     if line_block == 1  ## one line per block 
@@ -245,3 +267,5 @@ end
 csv_arr.each { |line| csv_file.print(line+"\n") }
 
 p csv_arr if (debug)
+
+end
