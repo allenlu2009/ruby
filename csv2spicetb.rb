@@ -9,6 +9,15 @@
 ##                      Bob,Ka,23423,234423-234423 ext23
 ## To remove repeated header from mt/MT csv file: use -r option, and header as column index
 ## For csv file without header: use -h option, and 0,1,2,3 as column index
+## parsing sequence:
+## 0. use header as symbol for all processing! Don't alter header
+## 1. remove comment columns : header starts with #
+## 2. put unit from header to table:  header with (pF)
+## then two things: 1. create tb name and directory
+##                  2. create regex for template.sp
+## 3. .param  and  1*vvcc etc.
+
+
 
 ## add the current directory to require search path
 $: << File.dirname(__FILE__)   
@@ -34,6 +43,26 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     outfile.print("#{cc} Generated #{date} by #{user}\n")
     outfile.print("#{cc} #{hostname}:#{pwd}\n")
     outfile.print("#{cc} #{$0} #{argstr}\n\n")
+  end
+
+
+  def remove_comment_col  ## comment column header start with #
+    comment_arr = []
+    @table.headers.compact.each do |hh|
+      comment_arr << hh  if hh.to_s =~ /^\s*#/   
+    end
+    self.compact_table_by_cols(comment_arr)
+  end
+
+
+  def add_unit_to_col   ## header with paranthesis : (pF)
+    @table.headers.compact.each do |hh|
+      if hh.to_s =~ /(\S+)\((\S+)\)/   ## extract unit
+        var = $1
+        unit = $2
+        @table[hh] = @table[hh].map {|element| element+unit}
+      end
+    end
   end
 
   
@@ -71,13 +100,14 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
         if col_no == 0   ## add leading zero for easier sorting tb item
           itemName_arr << hh.to_s+row[hh].rjust(nzeros,"0")
         else
-          ## csv header converter comp (pF) to comp__pf
           ## the following regexp separate comp from unit
           if hh.to_s =~ /(\S+)\((\S+)\)/   
             comp = $1
-            unit = $2
-            itemName_arr << comp+row[hh]+unit
+            itemName_arr << comp+row[hh]
           elsif hh.to_s =~ /(\S+)\*(\S+)/
+            comp = $1
+            itemName_arr << comp+row[hh]
+          elsif hh.to_s =~ /\.param(\S+)/i
             comp = $1
             itemName_arr << comp+row[hh]
           else
@@ -132,18 +162,22 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
       if hh.to_s =~ /(\S+)\((\S+)\)/   ## extract unit
         var = $1
         unit = $2
-        @table[hh] = @table[hh].map {|element| element+unit} ## []= to assign value
+        regexp_var = Regexp.new(/(^\s*#{var}\s+\S+\s+\S+\s+)\S+(\s*.*$)/i)
 
       elsif hh.to_s =~ /(\S+)\*(\S+)/   ## extract vvcc
         var = $1
         unit = $2
         @table[hh] = @table[hh].map {|element| element+"*"+unit} ## []= to assign value
+        regexp_var = Regexp.new(/(^\s*#{var}\s+\S+\s+\S+\s+)\S+(\s*.*$)/i)
 
+      elsif hh.to_s =~ /\.param(\S+)/   ## extract .param
+        var = $1
+        regexp_var = Regexp.new(/(^\s*\.param.*\s+#{var}\s*=\s*)\S+(\s*.*$)/i)
       else
         var = hh.to_s
+        regexp_var = Regexp.new(/(^\s*#{var}\s+\S+\s+\S+\s+)\S+(\s*.*$)/i)
       end
 
-      regexp_var = Regexp.new(/(^\s*#{var}\s+\S+\s+\S+\s+)\S+(\s*.*\b)/i)
       regexp_hsh[hh] = regexp_var
 
     end
@@ -221,6 +255,10 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
   ## The tbname is headers[0] <col[0]>_headers[1]<col[1]>_.... 
   def mk_testbench(short, makefile, path)
     
+    ## (0) remove comment column (header starts with #)
+    self.remove_comment_col
+    self.add_unit_to_col
+   
     # (i) create testbench items and put into tb_hsh 
     # tb_arr = tb_hsh.keys but not preserve created order
     # therefore, return both tb_arr and tb_hsh in Ruby 1.8

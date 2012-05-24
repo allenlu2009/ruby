@@ -69,8 +69,17 @@ class CSV_atd   ## csv file for ATD post processing
   end
 
   
-  ## remove col not include in var array
+  ## remove col in var_arr
+  ## legacy using compact_table_by_cols -> get_table_by_cols
   def compact_table_by_cols(var_arr)
+    var_arr.each do |var|
+      @table.by_col.delete(var)
+    end
+  end
+
+  
+  ## return table includes in var_array column
+  def get_table_by_cols(var_arr)
     table_by_col = @table.by_col     ## duplicate table by col
     table_by_col.delete_if {|col| !var_arr.include?(col[0].to_s) }  
     return table_by_col
