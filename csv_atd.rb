@@ -268,7 +268,7 @@ if __FILE__ == $0
   ## option -v, select variable array and generate a new table/csv file
   ## defaul to save all variables; or option -v variablws
   var_arr = options[:variable]? options[:variable]: c1.headers
-  table_tmp = c1.compact_table_by_cols(var_arr)
+  table_tmp = c1.get_table_by_cols(var_arr)
   csv_final = table_tmp.to_csv
 
   ## write to output csv file
