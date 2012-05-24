@@ -149,10 +149,6 @@ if __FILE__ == $0
   ## input file
   incdl = ARGV[0]  
   
-  ## output csv file
-  out_cdl = options[:outfile] ? options[:outfile] : incdl + ".cdl"
-  cdl_file = File.new(out_cdl, "w")
-
   f1 = CDL_atd.new(incdl)
   
   f1.cap_filter(options[:cap]) if options[:cap]
@@ -161,6 +157,10 @@ if __FILE__ == $0
 
   f1.print_cdl if debug
 
+  ## output csv file
+  out_cdl = options[:outfile] ? options[:outfile] : incdl + ".cdl"
+  cdl_file = File.new(out_cdl, "w")
+  
   f1.print_cdl(cdl_file)
 
 end
