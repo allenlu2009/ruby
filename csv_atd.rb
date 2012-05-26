@@ -17,8 +17,8 @@ require 'gnuplot'
 
 class CSV_atd   ## csv file for ATD post processing
   
-  def initialize(filename, return_header=false, clean=true, no_header=false)
-    @debug = false
+  def initialize(filename, return_header=false, clean=true, no_header=false, debug=false)
+    @debug = debug
     @filename = filename
     
     puts "open csv file => #{filename}" if @debug
@@ -55,7 +55,16 @@ class CSV_atd   ## csv file for ATD post processing
     end
 
   end
-    
+
+
+  def debug_msg(desc = nil)
+    caller[0].rindex( /:(\d+)(:in (`.*'))?$/ )
+    m = $3 ? "#{$3}, " : ""
+    d = desc ? "#{desc}: m" : 'M'
+    #puts "#{d}eached #{m}line #{$1} of file #{$`}"
+    puts "#{d}ethod #{m}line #{$1}"
+  end
+  
   
   def delete_repeat_header
     header_row = @table[0]  ## get header row
@@ -238,16 +247,16 @@ if __FILE__ == $0
   
   ## Initialize and option -h -r
   if options[:remove]
-    c1 = CSV_atd.new(in_csv, options[:remove])
+    c1 = CSV_atd.new(in_csv, options[:remove], true, false, debug)
     c1.delete_repeat_header
   else
-    c1 = CSV_atd.new(in_csv, options[:remove])
+    c1 = CSV_atd.new(in_csv, options[:remove], true, false, debug)
   end
 
   c1.print_table if debug
 
   if options[:combine]
-    c2 = CSV_atd.new(options[:combine], options[:remove])
+    c2 = CSV_atd.new(options[:combine], options[:remove], true, false, debug)
     c2.headers.each do |col|
       p c2.column(col) if debug
       c1.add_table_by_col(col, c2.column(col))

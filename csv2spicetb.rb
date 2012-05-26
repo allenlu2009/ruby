@@ -45,6 +45,11 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     outfile.print("#{cc} #{$0} #{argstr}\n\n")
   end
 
+  
+  def initialize(filename, debug=false)
+    ## return_header=false, clean=true, no_header=false
+    super(filename, false, true, false, debug)
+  end
 
   def remove_comment_col  ## comment column header start with #
     comment_arr = []
@@ -144,7 +149,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     tb_arr.each do |tbitem|
       ## create tb directory based on tbitem
       tb_dir = path + "/" + tbitem
-      p tb_dir if @debug
+      self.debug_msg(tb_dir) if @debug
       if ! FileTest::directory?(tb_dir)
         Dir::mkdir(tb_dir)
       end
@@ -188,17 +193,18 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
   end
 
 
-  def create_makefile(tb_arr, path="./")
+
+  def create_makefile(tb_arr, proj, path)
+
     ## First create master Makefile, then Makefile in each testbench directory
     if ! FileTest::directory?(path)
       Dir::mkdir(path)
     end
     mkfile = path + "/Makefile"
-    p mkfile if @debug
     mkFile = File.open(mkfile, "w") 
 
     ## print comment info
-    mkFile.print("PROJ = janus\n")
+    mkFile.print("PROJ = #{proj}\n")
     mkFile.print("SCRIPT = ~/scripts\n")
     mkFile.print("PROJ_SCRIPT = ~/projects/$(PROJ)/analog/script\n")
 
@@ -212,8 +218,8 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
 
     mkFile.print("\n\n")
     mkFile.print("post:\n")
-    mkFile.print("\t$(PROJ_SCRIPT)/mt2csv.rb final.mt -o final.mt.csv\n")
-    mkFile.print("\t$(PROJ_SCRIPT)/csv_atd.rb -r final.mt.csv -o final.csv\n")
+    mkFile.print("\t$(PROJ_SCRIPT)/mt2csv.rb finalmt -o finalmt.csv\n")
+    mkFile.print("\t$(PROJ_SCRIPT)/csv_atd.rb -r finalmt.csv -o final.csv\n")
     mkFile.print("\t$(PROJ_SCRIPT)/csv_atd.rb ../tb.csv -c final.csv -o tb_final.csv\n")
     
     mkFile.print("\n\n")
@@ -253,7 +259,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
   
   ## make testbench directory based on headers[0]. 
   ## The tbname is headers[0] <col[0]>_headers[1]<col[1]>_.... 
-  def mk_testbench(short, makefile, path)
+  def mk_testbench(short, makefile, proj, path)
     
     ## (0) remove comment column (header starts with #)
     self.remove_comment_col
@@ -269,7 +275,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     self.create_tb_directory(tb_arr, path)
     
     ## create makefile if --makefile
-    self.create_makefile(tb_arr, path) if makefile
+    self.create_makefile(tb_arr, proj, path) if makefile
     
     ## (iii) update table based on header and return regexp hash
     regexp_hsh = self.update_tb_table
@@ -301,6 +307,13 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
 
       ## line base regular expression replacement
       file_arr.each_with_index do |line, line_no|  ## row_no starts from 0
+
+        ## First, replace .title line with the filename
+        if line =~ /^\s*\.title\s+/i
+          line = ".TITLE #{tbitem}"
+        end
+
+        ## Next, do regex on each line
         regexp_hsh.each do |regexp_key, regexp_var|
           if regexp_var.match(line)
             prefix_str = $1
@@ -308,7 +321,9 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
             line.gsub!(regexp_var, "#{prefix_str}#{tb_row[regexp_key]}#{suffix_str}")
           end 
         end ## regexp_var
+
         tb_sp.print(line + "\n")
+
       end ## file_arr
 
       tb_sp.close()    
@@ -354,8 +369,13 @@ if __FILE__ == $0
     end
     
     options[:path] = "./"
-    opts.on( '-p', '--path PATH', 'tb directory and makefile PATH' ) do |pp|
+    opts.on( '--path PATH', 'tb directory and makefile PATH' ) do |pp|
     options[:path] = pp
+    end
+    
+    options[:proj] = "atd"
+    opts.on( '--proj PROJECT', 'project name' ) do |pj|
+    options[:proj] = pj
     end
     
     options[:title] = false
@@ -401,6 +421,7 @@ if __FILE__ == $0
   
 
   puts "OPTION:"
+  puts "PROJECT => #{options[:proj]}\n" if options[:proj]
   puts "PATH => #{options[:path]}\n" if options[:path]
   puts "Tb directory in short format" if options[:short]
   puts "Create Makefile!" if options[:makefile]
@@ -416,12 +437,12 @@ if __FILE__ == $0
   out_csv = options[:outfile] ? options[:outfile] : in_csv + ".csv"
     
   ## Initialize and option -h -r
-  c1 = CSV2SpiceTb.new(in_csv)  ## with normal header
+  c1 = CSV2SpiceTb.new(in_csv, debug)  ## with normal header
   c1.print_table if debug
 
   ## option -t, print csv header
   p c1.headers if options[:title]  ## print csv header if option -t
   
-  c1.mk_testbench(options[:short], options[:makefile], options[:path])
+  c1.mk_testbench(options[:short], options[:makefile], options[:proj], options[:path])
   
 end
