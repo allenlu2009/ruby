@@ -15,24 +15,64 @@ require 'optparse'
 require 'csv_atd.rb'
 require 'cdl_atd.rb'
 
-class Cdl2cdl
+class Netlist2cdl < CDL_atd
 
-  def get_lines(filename)
-    return File.open(filename, 'r').readlines
+  def convert(in_csv, hsp, lvs, lpe)
+    ## Second, read csv file 
+    c1 = CSV_atd.new(in_csv, false, true, false, @debug)
+    
+    header_arr = []
+    tail_arr = []
+    
+    table_out = c1.table
+    table_out.each do |row|
+      p row if @debug
+      
+      next if row[:mode] =~ /^\s*#/    ## ignore comment row
+      
+      #puts row[:option]!=nil if @debug
+      #puts !(row[:option]=~/lvs/) if @debug
+      
+      ## for lvs mode, skip when option is NOT empty and NOT include lvs
+      next if lvs && (row[:option]!=nil) && !(row[:option]=~/lvs/)
+      ## for lpe mode, skip when option is NOT empty and NOT include lpe
+      next if lpe && (row[:option]!=nil) && !(row[:option]=~/lpe/)
+      ## for hsp mode, skip when option is NOT empty and NOT include hsp
+      next if hsp && (row[:option]!=nil) && !(row[:option]=~/hsp/)
+      
+      #p row if @debug
+
+      if row[:mode] == "SR"  ## String Replace
+        self.str_replace(row[:old], row[:new])
+      end
+      
+      if row[:mode] == "WR"  ## String Replace
+        self.word_replace(row[:old], row[:new])
+      end
+      
+      if row[:mode] == "RD"  ## Regex delete
+        self.regex_delete(row[:old])
+      end
+      
+      if row[:mode] == "RR"  ## Regex delete
+        self.regex_replace(row[:old], row[:new])
+      end
+      
+      if row[:mode] == "SH"  ## String header
+        header_arr << row[:new] + "\n"
+      end
+
+      if row[:mode] == "ST"  ## String trailing
+        tail_arr << row[:new] + "\n"
+      end
+      
+    end
+    c1.print_table if @debug
+    
+    self.add_header(header_arr)
+    self.add_tail(tail_arr)
+    
   end
- 
-
-  def print_sysinfo(outfile, cc='#', argstr=ARGV)
-    date = `date`.chomp
-    pwd  = `pwd`.chomp
-    hostname = `hostname`.chomp
-    user = `whoami`.chomp
-    outfile.print("#{cc} Generated #{date} by #{user}\n")
-    outfile.print("#{cc} #{hostname}:#{pwd}\n")
-    outfile.print("#{cc} #{$0} #{argstr}\n\n")
-  end
-
-  
 
 end # class Cdl2cdl
 
@@ -114,11 +154,15 @@ if __FILE__ == $0
     exit
   end
 
+  lvs = options[:lvs]
+  lpe = options[:lpe]
+  hsp = options[:hsp]
+
   puts "OPTION:"
-  puts "Enable Debug" if options[:debug]  
-  puts "Calibre lvs cdl" if options[:lvs]
-  puts "Calibre lpe cdl" if options[:lpe]
-  puts "Hspice cdl" if options[:hsp]
+  puts "Enable Debug"           if options[:debug]  
+  puts "Output Calibre lvs cdl" if options[:lvs]
+  puts "Output Calibre lpe cdl" if options[:lpe]
+  puts "Output Hspice cdl"      if options[:hsp]
   puts "Csv file #{options[:csv]}" if options[:csv]
   puts "Output file #{options[:outfile]}" if options[:outfile]
   puts "Logging to file #{options[:logfile]}" if options[:logfile]
@@ -134,68 +178,18 @@ if __FILE__ == $0
   in_csv = options[:csv]  
   
   ## First, read input netlist
-  f1 = CDL_atd.new(in_cdl)
+  f1 = Netlist2cdl.new(in_cdl, debug)
 
-  ## Second, read csv file 
-  c1 = CSV_atd.new(in_csv, false, true, false, debug)
-  
-  header_arr = []
-  tail_arr = []
-
-  table_out = c1.table
-  table_out.each do |row|
-    p row if debug
-
-    next if row[:mode] =~ /^\s*#/    ## ignore comment row
-
-    puts options[:lvs] if debug
-    puts row[:option]!=nil if debug
-    puts !(row[:option]=~/lvs/) if debug
-
-    ## for lvs mode, skip when option is NOT empty and NOT include lvs
-    next if options[:lvs] && (row[:option]!=nil) && !(row[:option]=~/lvs/)
-    ## for lpe mode, skip when option is NOT empty and NOT include lpe
-    next if options[:lpe] && (row[:option]!=nil) && !(row[:option]=~/lpe/)
-    ## for hsp mode, skip when option is NOT empty and NOT include hsp
-    next if options[:hsp] && (row[:option]!=nil) && !(row[:option]=~/hsp/)
-
-    p row if debug
-
-    if row[:mode] == "SR"  ## String Replace
-      f1.str_replace(row[:old], row[:new])
-    end
-
-    if row[:mode] == "WR"  ## String Replace
-      f1.word_replace(row[:old], row[:new])
-    end
-
-    if row[:mode] == "RD"  ## Regex delete
-      f1.regex_delete(row[:old])
-    end
-
-    if row[:mode] == "RR"  ## Regex delete
-      f1.regex_replace(row[:old], row[:new])
-    end
-
-    if row[:mode] == "SH"  ## String header
-      header_arr << row[:new] + "\n"
-    end
-
-    if row[:mode] == "ST"  ## String trailing
-      tail_arr << row[:new] + "\n"
-    end
-
-  end
-  c1.print_table if debug
-  
-  f1.add_header(header_arr)
-  f1.add_tail(tail_arr)
-  f1.add_sysinfo("*", argstr)
-  
+  ## Next, use csv file for next conversion
+  f1.convert(in_csv, hsp, lvs, lpe)
+ 
   ## output cdl filename
   out_cdl = options[:outfile] ? options[:outfile] : in_cdl + ".cdl"
   
   cdl_file = File.new(out_cdl, "w")
+
+  ## add sysinfo before final output file
+  f1.add_sysinfo("*", argstr)
   
   f1.print_cdl(cdl_file)
   

@@ -23,8 +23,8 @@ class CDL_atd  # CDL of atd
   end
   
   
-  def initialize(filename)
-    @debug = false
+  def initialize(filename, debug=false)
+    @debug = debug
     @filename = filename
     @file_arr = get_lines(@filename)
   end
@@ -203,7 +203,7 @@ if __FILE__ == $0
   ## input file
   in_cdl = ARGV[0]  
   
-  f1 = CDL_atd.new(in_cdl)
+  f1 = CDL_atd.new(in_cdl, debug)
   
   f1.cap_filter(options[:cap]) if options[:cap]
 
