@@ -30,6 +30,50 @@ class CDL_atd  # CDL of atd
   end
 
   
+  def str_replace(old_str, new_str,option="")
+    @file_arr.each_with_index do |line, line_no|
+      line.gsub!( /#{old_str}/i, "#{new_str}" ) 
+    end
+  end
+
+  
+  def str_delete(old_str, option="")
+    @file_arr.each_with_index do |line, line_no|
+      line.gsub!( /#{old_str}/i, "" ) 
+    end
+  end
+  
+
+  def word_replace(old_word, new_word,option="")
+    @file_arr.each_with_index do |line, line_no|
+      line.gsub!( /\b#{old_word}\b/i, "#{new_word}" ) 
+    end
+  end
+  
+
+  def word_delete(old_word, option="")
+    @file_arr.each_with_index do |line, line_no|
+      line.gsub!( /\b#{old_word}\b/i, "" ) 
+    end
+  end
+  
+
+  def regex_replace(regex_str, new_str,option="")
+    regex = eval(regex_str) # convert string to regex
+    @file_arr.each_with_index do |line, line_no|
+      #if line =~ regex
+        line.gsub!( regex, "#{new_str}" )
+      #end 
+    end
+  end
+  
+  def regex_delete(regex_str)
+    regex = eval(regex_str) # convert string to regex
+    @file_arr.delete_if { |line| line =~ regex}
+  end
+  
+
+
   def print_cdl(outcdl=nil)
     @file_arr.each_with_index do |line, line_no|
       if outcdl
@@ -65,6 +109,16 @@ class CDL_atd  # CDL of atd
   end
   
   
+  def add_header(header_arr)
+    @file_arr = header_arr + @file_arr
+  end
+
+  
+  def add_tail(tail_arr)
+    @file_arr = @file_arr + tail_arr
+  end
+
+
   def add_sysinfo(cc='#', argstr=ARGV)
     sysinfo_arr = []
     date = `date`.chomp
@@ -147,9 +201,9 @@ if __FILE__ == $0
   puts $0 if debug
   
   ## input file
-  incdl = ARGV[0]  
+  in_cdl = ARGV[0]  
   
-  f1 = CDL_atd.new(incdl)
+  f1 = CDL_atd.new(in_cdl)
   
   f1.cap_filter(options[:cap]) if options[:cap]
 
@@ -157,8 +211,8 @@ if __FILE__ == $0
 
   f1.print_cdl if debug
 
-  ## output csv file
-  out_cdl = options[:outfile] ? options[:outfile] : incdl + ".cdl"
+  ## output cdl file
+  out_cdl = options[:outfile] ? options[:outfile] : in_cdl + ".cdl"
   cdl_file = File.new(out_cdl, "w")
   
   f1.print_cdl(cdl_file)

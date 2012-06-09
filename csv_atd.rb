@@ -78,6 +78,12 @@ class CSV_atd   ## csv file for ATD post processing
   end
 
   
+  def table
+    ## return header and convert from symbol to string
+    return @table
+  end
+
+  
   ## remove col in var_arr
   ## legacy using compact_table_by_cols -> get_table_by_cols
   def compact_table_by_cols(var_arr)

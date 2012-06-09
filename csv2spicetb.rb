@@ -194,7 +194,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
 
 
 
-  def create_makefile(tb_arr, proj, path)
+  def create_makefile(tb_arr, proj, path, one)
 
     ## First create master Makefile, then Makefile in each testbench directory
     if ! FileTest::directory?(path)
@@ -209,8 +209,13 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     mkFile.print("PROJ_SCRIPT = ~/projects/$(PROJ)/analog/script\n")
 
     mkFile.print("DIRS = \\\n")
-    tb_arr.each do |tbname|
-      mkFile.print("#{tbname} \\\n")
+    tb_arr.each_with_index do |tbname, n|
+      if n == 0
+        mkFile.print("#{tbname} \\\n")
+      else
+        next if one
+        mkFile.print("#{tbname} \\\n")
+      end        
     end
     mkFile.print("\n\n")
     mkFile.print("catmt:\n")
@@ -259,7 +264,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
   
   ## make testbench directory based on headers[0]. 
   ## The tbname is headers[0] <col[0]>_headers[1]<col[1]>_.... 
-  def mk_testbench(short, makefile, proj, path)
+  def mk_testbench(short, makefile, proj, path, one)
     
     ## (0) remove comment column (header starts with #)
     self.remove_comment_col
@@ -275,7 +280,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     self.create_tb_directory(tb_arr, path)
     
     ## create makefile if --makefile
-    self.create_makefile(tb_arr, proj, path) if makefile
+    self.create_makefile(tb_arr, proj, path, one) if makefile
     
     ## (iii) update table based on header and return regexp hash
     regexp_hsh = self.update_tb_table
@@ -383,14 +388,14 @@ if __FILE__ == $0
       options[:title] = true
     end
     
+    options[:one] = false
+    opts.on( '--one', 'Run one tb for testing' ) do
+      options[:one] = true
+    end
+    
     #options[:outfile] = nil
     #opts.on( '-o', '--outfile FILE', 'Output csv; default <cdl>.csv' ) do |file|
     #options[:outfile] = file
-    #end
-    
-    #options[:line] = 1
-    #opts.on( '-l', '--line Num', Integer, 'Variable takes how many line; default 1' ) do |ln|
-    #  options[:line] = ln
     #end
     
     #options[:variable] = nil
@@ -425,6 +430,7 @@ if __FILE__ == $0
   puts "PATH => #{options[:path]}\n" if options[:path]
   puts "Tb directory in short format" if options[:short]
   puts "Create Makefile!" if options[:makefile]
+  puts "Run ONE testbench for testing" if options[:one]
   
   debug = options[:debug] 
   puts __FILE__ if debug
@@ -443,6 +449,6 @@ if __FILE__ == $0
   ## option -t, print csv header
   p c1.headers if options[:title]  ## print csv header if option -t
   
-  c1.mk_testbench(options[:short], options[:makefile], options[:proj], options[:path])
+  c1.mk_testbench(options[:short], options[:makefile], options[:proj], options[:path], options[:one])
   
 end
