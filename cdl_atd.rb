@@ -58,7 +58,7 @@ class CDL_atd  # CDL of atd
   end
   
 
-  def regex_replace(regex_str, new_str,option="")
+  def regex_replace(regex_str, new_str)
     regex = eval(regex_str) # convert string to regex
     @file_arr.each_with_index do |line, line_no|
       #if line =~ regex
@@ -67,12 +67,26 @@ class CDL_atd  # CDL of atd
     end
   end
   
+
+  def regex_search(regex_str)
+    match_arr = []
+    regex = eval(regex_str) # convert string to regex
+    @file_arr.each_with_index do |line, line_no|
+      if line =~ regex
+        match_arr << $1
+      end 
+    end
+    #match_arr.uniq!
+    p match_arr if @debug
+    return match_arr
+  end
+
+  
   def regex_delete(regex_str)
     regex = eval(regex_str) # convert string to regex
     @file_arr.delete_if { |line| line =~ regex}
   end
   
-
 
   def print_cdl(outcdl=nil)
     @file_arr.each_with_index do |line, line_no|
