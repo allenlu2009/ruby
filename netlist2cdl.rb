@@ -46,23 +46,31 @@ class Netlist2cdl < CDL_atd
         self.str_replace(row[:old], row[:new])
       end
       
-      if row[:mode] == "WR"  ## String Replace
+      if row[:mode] == "SD"  ## String Delete
+        self.str_delete(row[:old])
+      end
+      
+      if row[:mode] == "WR"  ## Word Replace
         self.word_replace(row[:old], row[:new])
       end
       
-      if row[:mode] == "RD"  ## Regex delete
+      if row[:mode] == "WD"  ## Word Delete
+        self.word_delete(row[:old])
+      end
+      
+      if row[:mode] == "RD"  ## Regex Delete
         self.regex_delete(row[:old])
       end
       
-      if row[:mode] == "RR"  ## Regex delete
+      if row[:mode] == "RR"  ## Regex Replace
         self.regex_replace(row[:old], row[:new])
       end
       
-      if row[:mode] == "SH"  ## String header
+      if row[:mode] == "SH"  ## String Header
         header_arr << row[:new] + "\n"
       end
 
-      if row[:mode] == "ST"  ## String trailing
+      if row[:mode] == "ST"  ## String Tail
         tail_arr << row[:new] + "\n"
       end
       
