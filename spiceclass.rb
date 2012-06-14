@@ -1,4 +1,4 @@
-#! /usr/bin/env ruby
+#!/usr/bin/ruby
 
 #spice.rb
 #Just for fun 
@@ -68,51 +68,29 @@ class Spice
     return File.open(filename, 'r').readlines
   end
 
-  def initialize()
+  def initialize(filename)
+    @filename = filename
+    @netlist = []
     @subckts = {}
     @cell_lib_hsh = {}
     @error = ""
+    findLib()
     processSpice()
     readSpice()
   end
 
-  def processSpice
-    tmpspice = File.new("netlist.tmp",'w')
-    prevLine = ""
-    get_lines("netlist").each_with_index do |line, lineNo| # starts from 0
-      line.chomp!
-      next unless line.length > 0  # ignore blank lines
-      next if line =~ /^\s*\*/ # weed out comment
-      if line =~ /^\s*\+/
-        line.gsub!(/^\s*\+/, ' ') # eat up continuation character +
-        prevLine = prevLine + line
-      else
-        tmpspice.print "#{prevLine}\n" if (prevLine)
-        prevLine = line
-      end
-    end
-    tmpspice.print "#{prevLine}\n" if (prevLine)
-    tmpspice.close()
-    return 0
-  end
-  
 
-  def findLib
+  def findLib()
     lineNo_mark = 0
     lib_name = ""
-    get_lines("netlist").each_with_index do |line, lineNo| # starts from 0
+    get_lines(@filename).each_with_index do |line, lineNo| # starts from 0
       line.chomp!
       if line =~ /^\s*\*\s*Library\s+Name\s*:\s*(\S+)/i
         lib_name = $1
         lineNo_mark = lineNo
-        #p lib_name
-        #p lineNo
       elsif line =~ /^\s*\*\s*Cell\s+Name\s*:\s*(\S+)/i
         if lineNo == (lineNo_mark + 1)
           cell_name = $1
-          #p cell_name
-          #p lib_name
-          #p lineNo
           @cell_lib_hsh[cell_name] = lib_name
         else
           next
@@ -121,13 +99,35 @@ class Spice
         next
       end
     end
-    p @cell_lib_hsh
+    #p @cell_lib_hsh
     return 0
   end
 
+
+  def processSpice
+    prevLine = ""
+    get_lines(@filename).each_with_index do |line, lineNo| # starts from 0
+      line.chomp!
+      next unless line.length > 0  # ignore blank lines
+      next if line =~ /^\s*\*/ # weed out comment
+      if line =~ /^\s*\+/
+        line.gsub!(/^\s*\+/, ' ') # eat up continuation character +
+        prevLine = prevLine + line
+      else
+        @netlist << "#{prevLine}\n" if (prevLine)
+        prevLine = line
+      end
+    end
+    @netlist << "#{prevLine}\n" if (prevLine)
+    #p @netlist
+    return 0
+  end
+  
+
+
   def readSpice()
     subcktName = ""
-    get_lines("netlist.tmp").each_with_index do |line, lineNo| # starts from 0
+    @netlist.each_with_index do |line, lineNo| # starts from 0
       #line.chomp!   # use chomp instead of chop
       if line =~ /^\s*\+/
         return "-1"   # self validation
@@ -394,6 +394,33 @@ class Spice
     return
   end
   
+  def traverseHierLib(node, count)
+    for i in 0...count do
+      print "   "
+    end
+    count = count + 1
+    print "#{count}.#{node}(#{@cell_lib_hsh[node]})\n"
+    subckts_arr = getInstances(node)
+    if (subckts_arr == "-1")
+      puts "Error #{node} not found!!"
+      return
+    end
+    #p subckts_arr
+    subckts_arr.flatten!
+    subckts_hsh = Hash[*subckts_arr]
+    children = subckts_hsh.values
+    children = removeDup(children)
+    subckts_arr = nil
+    subckts_hsh = nil
+    if (children.length < 0)
+      return
+    end
+    children.each do |child|
+      traverseHierLib(child, count)
+    end
+    return
+  end
+  
   def removeDup(list)
     hash = {}
     list.each do |part|
@@ -413,13 +440,83 @@ end
 if __FILE__ == $0
   #  require "rubygems"
   #  require "active_support"
+  require 'optparse'
   require "test/unit"
   
   class TestSpice < Test::Unit::TestCase
     def setup
-      @spice = Spice.new()
-    end
 
+      # This hash will hold all of the options
+      # parsed from the command-line by
+      # OptionParser.
+      options = {}
+      
+      optparse = OptionParser.new do |opts|
+        # Set a banner, displayed at the top
+        # of the help screen.
+        opts.banner = "Usage: #{$0} [options] <in.cdl> <out.cdl>"
+        
+        # Define the options, and what they do
+        options[:force] = false
+        opts.on( '-f', '--force', 'Force to overwrite output file' ) do
+          options[:force] = true
+        end
+        
+        options[:cap] = 1.0
+        opts.on( '-c', '--cap val', Float, 'cap threshold in fF' ) do |cap|
+          options[:cap] = cap
+        end
+        
+        options[:bracket] = false
+        opts.on( '-b', '--bracket', 'Bracket <> -> []' ) do
+          options[:bracket] = true
+        end
+  
+        options[:dummy] = false
+        opts.on( '-d', '--dummy', 'Dummy cap and resistor removal' ) do
+          options[:dummy] = true
+        end
+        
+        options[:logfile] = nil
+        opts.on( '-l', '--logfile FILE', 'Write log to FILE' ) do|file|
+          options[:logfile] = file
+        end
+  
+        # This displays the help screen, all programs are
+        # assumed to have this option.
+        opts.on( '-h', '--help', 'Display this screen' ) do
+          puts opts
+          exit
+        end
+      end
+      
+      # Parse the command-line. Remember there are two forms
+      # of the parse method. The 'parse' method simply parses
+      # ARGV, while the 'parse!' method parses ARGV and removes
+      # any options found there, as well as any parameters for
+      # the options. What's left is the list of files to resize.
+      
+      begin optparse.parse! ARGV
+      rescue OptionParser::InvalidOption => err
+        puts err
+        puts optparse
+        exit 
+      end
+      
+      #if (ARGV.length < 2)
+      #  puts optparse
+      #  exit
+      #end
+      
+      puts "Remove cap less than #{options[:cap]} fF"
+      #puts "Force to overwrite output file" if options[:force]
+      #puts "Bracket <> -> []" if options[:bracket]
+      #puts "Dummy cap & resistor removal" if options[:dummy]
+      puts "Logging to file #{options[:logfile]}" if options[:logfile]
+      
+      @spice = Spice.new("netlist")
+    end
+    
     def test_get_res_name
       assert_equal ['r234a','100.3MEG'],@spice.getResCapName("r234a sdf\\23 32f323 100.3MEG\n")
     end
@@ -445,24 +542,24 @@ if __FILE__ == $0
     end
 
     def test_get_subckt
-      assert_equal "", @spice.getSubckt("Level1V2to3V3_test_rb")
+      #assert_equal "", @spice.getSubckt("Level1V2to3V3_test_rb")
     end
 
     def test_get_cap
-      assert_equal [["Ctt", "12f"]], @spice.getCapacitors("Level1V2to3V3_test_rb")
+      #assert_equal [["Ctt", "12f"]], @spice.getCapacitors("Level1V2to3V3_test_rb")
     end
 
     def test_get_instance
-      assert_equal [["XI2", "inv_h_schematic"],["XI1","inv_LV"]], @spice.getInstances("Level1V2to3V3_test_rb")
+      #assert_equal [["XI2", "inv_h_schematic"],["XI1","inv_LV"]], @spice.getInstances("Level1V2to3V3_test_rb")
     end
 
     def test_get_top
-      assert_equal ["UAUDIOAMPD20", "Level1V2to3V3_test_rb"], @spice.getTopSubckts()
+      assert_equal ["AFA6011v2"], @spice.getTopSubckts()
     end
 
-    def test_traversehier
+    def test_traversehierLib
       print "\n"
-      @spice.traverseHier("AFA6011v2", 0)
+      @spice.traverseHierLib("AFA6011v2", 0)
     end
 
     def test_findLib
