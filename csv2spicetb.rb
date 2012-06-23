@@ -228,6 +228,13 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     mkFile.print("\t$(PROJ_SCRIPT)/csv_atd.rb ../tb.csv -c final.csv -o tb_final.csv\n")
     
     mkFile.print("\n\n")
+    mkFile.print("meas:\n")
+    mkFile.print("\techo running all in .\n")
+    mkFile.print("\t-for d in $(DIRS); do (cd $$d; make meas); done\n")
+    mkFile.print("\tmake catmt\n")
+    mkFile.print("\tmake post\n")
+    
+    mkFile.print("\n\n")
     mkFile.print("all:\n")
     mkFile.print("\techo running all in .\n")
     mkFile.print("\t-for d in $(DIRS); do (cd $$d; make all); done\n")
@@ -249,12 +256,27 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
       
       tbfile_prefix = @table.headers[0].to_s
       ## print comment info
+      
+      mkFile.print("PROJ = #{proj}\n")
+      mkFile.print("SCRIPT = ~/scripts\n")
+      mkFile.print("PROJ_SCRIPT = ~/projects/$(PROJ)/analog/script\n")
+      
+      mkFile.print("tb2meas:\n")
+      mkFile.print("\t$(PROJ_SCRIPT)/tb2meas.rb #{tbfile_prefix}.sp -o meas.sp\n")
+      
+      mkFile.print("meas:\n")
+      mkFile.print("\tmake tb2meas\n")
+      mkFile.print("\thspice -meas meas.sp -i #{tbfile_prefix}.tr0\n")
+      
+      mkFile.print("hsp:\n")
+      mkFile.print("\thspice -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
+      
       mkFile.print("all:\n")
-      mkFile.print("\t hspice -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
+      mkFile.print("\tmake hsp\n")
       
       mkFile.print("\n\n")
       mkFile.print("clean:\n")
-      mkFile.print("\trm -rf *.tr* *.mt* *.cx* *.lis *.pa* *.st* *.ac* *.ic* *.ma* *.TR* *.MT*\n")
+      mkFile.print("\trm -rf *.tr* *.mt* *.cx* *.ft* meas.sp *.lis *.pa* *.st* *.ac* *.ic* *.ma* *.TR* *.MT*\n")
 
       mkFile.close()
       
