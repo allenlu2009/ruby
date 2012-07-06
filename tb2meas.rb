@@ -23,6 +23,47 @@ class Tb2meas < CDL_atd
     
     @title = @file_arr[0]
 
+    sup_core = false
+    sup_io = false
+    corner = nil
+
+    @file_arr.each do |line|
+      if line =~ /^\s*\.lib.+(ssss|tttt|ffff)/i
+        corner = $1
+        puts corner if @debug
+      end
+
+      if line =~ /^\s*\.param.+sup_core/i
+        sup_core = true
+      end
+
+      if line =~ /^\s*\.param.+sup_io/i
+        sup_io = true
+      end
+
+    end
+
+    line1 = ""
+    if (corner =~ /ssss/i) && sup_core
+      line1 = ".param vvcc='0.9*sup_core'"
+    elsif (corner =~ /tttt/i) && sup_core
+      line1 = ".param vvcc='1.0*sup_core'"
+    elsif (corner =~ /ffff/i) && sup_core
+      line1 = ".param vvcc='1.1*sup_core'"
+    else
+    end
+
+    line2 = ""
+    if (corner =~ /ssss/i) && sup_io
+      line2 = ".param vvio='0.9*sup_io'"
+    elsif (corner =~ /tttt/i) && sup_io
+      line2 = ".param vvio='1.0*sup_io'"
+    elsif (corner =~ /ffff/i) && sup_io
+      line2 = ".param vvio='1.1*sup_io'"
+    else
+    end
+
+
     ### Line based regex. Careful no support for multiple lines!!!
     meas_regex   = Regexp.new(/^\s*\.meas/i)
     para_regex   = Regexp.new(/^\s*\.para/i)
@@ -40,11 +81,18 @@ class Tb2meas < CDL_atd
     
     @file_arr.delete_if { |line| !(line =~ keep_regex)}
 
+    self.add_line(line1)
+    self.add_line(line2)
+
   end
   
 
   def add_title
     @file_arr.unshift(@title)
+  end
+
+  def add_line(str)
+    @file_arr.unshift(str+"\n")
   end
 
 end # class Tb2meas
