@@ -267,7 +267,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
       
       mkFile.print("meas:\n")
       mkFile.print("\tmake tb2meas\n")
-      mkFile.print("\thspice -meas meas.sp -i #{tbfile_prefix}.tr0\n")
+      mkFile.print("\thspice -meas meas.sp -i #{tbfile_prefix}.tr0 -o #{tbfile_prefix}\n")
       
       mkFile.print("hsp:\n")
       mkFile.print("\thspice -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
@@ -277,7 +277,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
       
       mkFile.print("\n\n")
       mkFile.print("clean:\n")
-      mkFile.print("\trm -rf *.tr* *.mt* *.cx* *.ft* meas.sp *.lis *.pa* *.st* *.ac* *.ic* *.ma* *.TR* *.MT*\n")
+      mkFile.print("\trm -rf *~ *.tr* *.mt* *.cx* *.ft* meas.sp *.lis *.pa* *.st* *.ac* *.ic* *.ma* *.TR* *.MT*\n")
 
       mkFile.close()
       
