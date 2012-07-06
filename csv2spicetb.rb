@@ -94,6 +94,7 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
     
     @table.each do |row|
       next if row.empty?()
+      next if row[@table.headers[0]] =~ /^\s*#/    ## ignore comment row
 
       ## generate testbench items per row, default long format
       ## tb_dac12_res700_comp40pF => 17th row
