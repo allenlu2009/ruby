@@ -270,7 +270,8 @@ class CSV2SpiceTb < CSV_atd  ## CSV2SpiceTb derives from CSV_atd
       mkFile.print("\thspice -meas meas.sp -i #{tbfile_prefix}.tr0 -o #{tbfile_prefix}\n")
       
       mkFile.print("hsp:\n")
-      mkFile.print("\thspice -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
+      #mkFile.print("\thspice -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
+      mkFile.print("\thspice -hpp -mt 4 -i #{tbfile_prefix}.sp -o #{tbfile_prefix}.lis\n")
       
       mkFile.print("all:\n")
       mkFile.print("\tmake hsp\n")
