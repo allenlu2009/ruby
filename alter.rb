@@ -1,4 +1,4 @@
-#/usr/bin/ruby
+#/usr/bin/env ruby
 # alter.rb
 # ruby alter.rb tb_pll2_vco_pvt.mt*
 

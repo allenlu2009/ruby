@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # mkdir.rb
 # 
 ### only works for no sweeping case; for sweeping case, use alter_vco.rb

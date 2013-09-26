@@ -1,4 +1,4 @@
-#!/usr/bin/ruby -W0
+#!/usr/bin/env ruby -W0
 # cast2_cvt_cdl_u110nm.rb
 #
 # Author: Allen Lu

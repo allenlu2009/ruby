@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 out = File.new('temp2.txt','w') 
 out.puts("This is a test") 

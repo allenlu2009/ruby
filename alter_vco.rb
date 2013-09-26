@@ -1,4 +1,4 @@
-#/usr/bin/ruby
+#/usr/bin/env ruby
 # alter_adit.rb
 # ruby alter_adit.rb *.MT
 ### this script works for tran/ac analysis with sweeping case

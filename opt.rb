@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # A script that will pretend to resize a number of images
 require 'optparse'
 

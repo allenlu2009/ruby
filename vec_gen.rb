@@ -1,4 +1,4 @@
-#/usr/bin/ruby
+#/usr/bin/env ruby
 
 
 ##### step 1: repeat each code 4 times 

@@ -1,4 +1,4 @@
-#/usr/bin/ruby
+#/usr/bin/env ruby
 # i2c.rb  by Allen Lu 2010_01_19
 # ruby i2c.rb i2c.pat outfile
 

@@ -1,4 +1,4 @@
-#/usr/bin/ruby
+#/usr/bin/env ruby
 # i2c_d10.rb
 # ruby i2c_d10.rb xxx
 

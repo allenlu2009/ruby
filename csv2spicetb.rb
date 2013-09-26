@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # csv2spicetb.rb
 # 
 ## This script processes the mt/MT csv file from hspice/adit for parameter sweeping 

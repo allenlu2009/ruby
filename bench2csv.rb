@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # ft2csv.rb
 # 
 ### this script works for YiChang to convert ft log to csv

@@ -1,4 +1,4 @@
-#!/usr/bin/ruby -W0
+#!/usr/bin/env ruby -W0
 # msdll_cvt_cdl_u130nm.rb
 #
 # Author: Allen Lu

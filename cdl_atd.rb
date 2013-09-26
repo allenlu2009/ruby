@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # mt2csv.rb
 # 
 ### this script works for tran/ac analysis with sweeping case

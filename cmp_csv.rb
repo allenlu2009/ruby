@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-###!/usr/bin/ruby  ; the above is good for rvm
+###!/usr/bin/env ruby  ; the above is good for rvm
 # convert io csv file into verilog stub
 # make sure to use bus option, otherwise the file is too long (but OK)
 # io2verilog.rb input.csv -o output.v.stub

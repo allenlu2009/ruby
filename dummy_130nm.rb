@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 ## pipo.rb is used with cadence Virtuoso
 ## to stream in and out GDS and layout database
 ## Make sure to source cadence license file beforehand

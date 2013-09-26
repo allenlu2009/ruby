@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 # reg2i2c.rb  by Allen Lu 2010_01_19
 # ruby reg2i2c.rb reg.in i2c.pat
 
